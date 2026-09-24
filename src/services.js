@@ -100,7 +100,7 @@ export async function deleteTaskComment(taskId, comment) {
   await updateDoc(doc(db, 'tasks', taskId), { comments: arrayRemove(comment), updatedAt: serverTimestamp() })
 }
 
-export async function notifyMentions(taskId, taskTitle, text, author, users = [], tasks = []) {
+export function getMentionNotifications(taskId, taskTitle, text, author, users = [], tasks = []) {
   const people = [...new Set((text.match(/@\[[^\]]+\]|@[\w.-]+/gu) || []).map((item) => item.replace(/^@\[|^@|\]$/g, '').trim()).filter(Boolean))]
   const taskIds = [...new Set((text.match(/#\[[^\]]+\]|#(?:[\w.-]+)|\[\[[^\]]+\]\]/gu) || []).map((item) => item.replace(/^#\[|^#|^\[\[/, '').replace(/\]\]$|\]$/, '').trim()).filter(Boolean))]
   const personNotifications = people.map((person) => { const user = users.find((item) => item.name === person); return { type: 'mention', text: `${author} แท็กคุณในงาน ${taskTitle}`, recipient: person, recipientId: user?.uid || user?.id, taskId } })
@@ -109,9 +109,17 @@ export async function notifyMentions(taskId, taskTitle, text, author, users = []
     const recipients = (mentionedTask?.assignees || []).map((assignee) => users.find((user) => user.name === assignee || user.uid === assignee || user.id === assignee)).filter((user) => user?.uid || user?.id)
     return recipients.map((user) => ({ type: 'task-mention', text: `${author} แท็กงาน ${mentionedTask.title || mentionedTaskId} จาก ${taskTitle}`, recipient: user.name, recipientId: user.uid || user.id, recipientTaskId: mentionedTaskId, taskId }))
   })
-  const notifications = [...personNotifications, ...taskNotifications]
+  const byRecipient = new Map()
+  for (const notification of [...personNotifications, ...taskNotifications]) {
+    if (notification.recipientId && notification.recipientId !== auth?.currentUser?.uid && !byRecipient.has(notification.recipientId)) byRecipient.set(notification.recipientId, notification)
+  }
+  return [...byRecipient.values()]
+}
+
+export async function notifyMentions(taskId, taskTitle, text, author, users = [], tasks = []) {
+  const notifications = getMentionNotifications(taskId, taskTitle, text, author, users, tasks)
   if (!db) return notifications
-  await Promise.all(notifications.filter((notification) => notification.recipientId).map(async (notification) => {
+  await Promise.all(notifications.map(async (notification) => {
     const saved = await addDoc(collection(db, 'notifications'), { ...notification, createdBy: auth?.currentUser?.uid || '', createdAt: serverTimestamp(), read: false })
     await sendPushNotification(saved.id)
   }))
