@@ -166,6 +166,7 @@ function EnhancedFilesPageDrive({
   const [search, setSearch] = useState("");
   const [view, setView] = useState("list");
   const [modal, setModal] = useState(null);
+  const rootFiles = files.filter((file) => !file.folderPath);
   const children = folders.filter(
     (item) =>
       folder !== "ทั้งหมด" &&
@@ -174,9 +175,7 @@ function EnhancedFilesPageDrive({
   );
   const visible = files.filter((file) => {
     const inFolder =
-      folder === "ทั้งหมด" ||
-      file.folderPath === folder ||
-      file.folderPath?.startsWith(`${folder}/`);
+      folder === "ทั้งหมด" ? !file.folderPath : file.folderPath === folder;
     const query = search.trim().toLowerCase();
     return (
       inFolder &&
@@ -265,7 +264,7 @@ function EnhancedFilesPageDrive({
             onClick={() => setFolder("ทั้งหมด")}
           >
             <FileText size={17} />
-            ไฟล์ทั้งหมด<span>{files.length}</span>
+            ไฟล์นอกโฟลเดอร์<span>{rootFiles.length}</span>
           </button>
           <div className="drive-section-label">โฟลเดอร์</div>
           {folders
@@ -276,6 +275,7 @@ function EnhancedFilesPageDrive({
                 item={item}
                 folder={folder}
                 files={files}
+                folders={folders}
                 onOpen={openFolder}
                 onDelete={removeFolder}
               />
@@ -292,7 +292,7 @@ function EnhancedFilesPageDrive({
           <div className="drive-breadcrumb">
             <button onClick={() => setFolder("ทั้งหมด")}>
               <FileText size={15} />
-              ทั้งหมด
+              นอกโฟลเดอร์
             </button>
             {folder !== "ทั้งหมด" &&
               folder.split("/").map((part, index, parts) => {
@@ -308,9 +308,9 @@ function EnhancedFilesPageDrive({
           <div className="drive-content-head">
             <div>
               <h2>
-                {folder === "ทั้งหมด" ? "ไฟล์ทั้งหมด" : folder.split("/").pop()}
+                {folder === "ทั้งหมด" ? "ไฟล์นอกโฟลเดอร์" : folder.split("/").pop()}
               </h2>
-              <span>{visible.length} รายการ</span>
+              <span>{visible.length + children.length} รายการ</span>
             </div>
             <div className="drive-head-actions">
               <button
@@ -336,6 +336,7 @@ function EnhancedFilesPageDrive({
                   key={item}
                   item={item}
                   files={files}
+                  folders={folders}
                   onOpen={openFolder}
                   onDelete={removeFolder}
                 />
@@ -380,7 +381,7 @@ function EnhancedFilesPageDrive({
       {modal === "link" && (
         <EnhancedFileLinkModal
           folders={folders}
-          defaultFolder={folder === "ทั้งหมด" ? folders[0] : folder}
+          defaultFolder={folder === "ทั้งหมด" ? "" : folder}
           onClose={() => setModal(null)}
           onCreate={async (file) => {
             setFiles((current) => [
@@ -404,7 +405,7 @@ function EnhancedFilesPageDrive({
     </div>
   );
 }
-function DriveFolderRow({ item, folder, files, onOpen, onDelete }) {
+function DriveFolderRow({ item, folder, files, folders, onOpen, onDelete }) {
   return (
     <div className="drive-folder-row-wrap">
       <button
@@ -413,7 +414,14 @@ function DriveFolderRow({ item, folder, files, onOpen, onDelete }) {
       >
         <FolderKanban size={17} />
         {item}
-        <span>{files.filter((file) => file.folderPath === item).length}</span>
+        <span>
+          {files.filter((file) => file.folderPath === item).length +
+            folders.filter(
+              (child) =>
+                child.startsWith(`${item}/`) &&
+                !child.slice(item.length + 1).includes("/"),
+            ).length}
+        </span>
       </button>
       <button className="drive-delete" onClick={() => onDelete(item)}>
         <X size={13} />
@@ -421,13 +429,18 @@ function DriveFolderRow({ item, folder, files, onOpen, onDelete }) {
     </div>
   );
 }
-function DriveFolderCard({ item, files, onOpen, onDelete }) {
+function DriveFolderCard({ item, files, folders, onOpen, onDelete }) {
   return (
     <div className="drive-folder-card" onDoubleClick={() => onOpen(item)}>
       <FolderKanban size={20} />
       <strong>{item.split("/").pop()}</strong>
       <small>
-        {files.filter((file) => file.folderPath === item).length} รายการ
+        {files.filter((file) => file.folderPath === item).length +
+          folders.filter(
+            (child) =>
+              child.startsWith(`${item}/`) &&
+              !child.slice(item.length + 1).includes("/"),
+          ).length} รายการ
       </small>
       <button onClick={() => onDelete(item)}>
         <X size={13} />

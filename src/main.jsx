@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   AlignLeft,
@@ -33,10 +33,7 @@ import {
   X,
 } from "lucide-react";
 import { boardConfigs } from "./data";
-import { BoardPage, TaskTable } from "./components/board";
 import { PageTitle } from "./components/shared";
-import { EnhancedFilesPageDrive } from "./components/files";
-import { EnhancedTaskDrawer, TaskEditorDrawer, ProfileModal } from "./components/task-detail";
 import {
   firebaseEnabled,
   setupWebPush,
@@ -76,6 +73,18 @@ import {
 import "./styles.css";
 import "./extended.css";
 import "./rich-editor.css";
+
+const BoardPage = lazy(() => import("./components/board").then(({ BoardPage: Component }) => ({ default: Component })));
+const TaskTable = lazy(() => import("./components/board").then(({ TaskTable: Component }) => ({ default: Component })));
+const OverviewPage = lazy(() => import("./components/overview").then(({ OverviewPage: Component }) => ({ default: Component })));
+const EnhancedFilesPageDrive = lazy(() => import("./components/files").then(({ EnhancedFilesPageDrive: Component }) => ({ default: Component })));
+const EnhancedTaskDrawer = lazy(() => import("./components/task-detail").then(({ EnhancedTaskDrawer: Component }) => ({ default: Component })));
+const TaskEditorDrawer = lazy(() => import("./components/task-detail").then(({ TaskEditorDrawer: Component }) => ({ default: Component })));
+const ProfileModal = lazy(() => import("./components/task-detail").then(({ ProfileModal: Component }) => ({ default: Component })));
+
+function RouteLoading() {
+  return <div className="route-loading" role="status">กำลังโหลดข้อมูล...</div>;
+}
 
 const navItems = [
   { label: "ภาพรวม", icon: LayoutDashboard },
@@ -181,7 +190,7 @@ function deadlineState(task) {
   const due = dueAtEndOfDay(currentStepDue(task));
   if (
     !due ||
-    ["เสร็จ", "รูปภาพเสร็จแล้ว", "Finish", "Work Done", "Completed"].includes(
+    ["เสร็จ", "รูปภาพเสร็จแล้ว", "Finish", "Work Done", "Completed", "Done"].includes(
       task.status,
     )
   )
@@ -196,7 +205,7 @@ function isOverdue(task) {
   return Boolean(
     due &&
     due < new Date() &&
-    !["เสร็จ", "รูปภาพเสร็จแล้ว", "Finish", "Work Done", "Completed"].includes(
+    !["เสร็จ", "รูปภาพเสร็จแล้ว", "Finish", "Work Done", "Completed", "Done"].includes(
       task.status,
     ),
   );
@@ -204,7 +213,7 @@ function isOverdue(task) {
 function BrandMark() {
   return (
     <div className="brand-mark centered">
-      <span>D</span>
+      <img className="brand-logo" src="/dlg-logo-black.png" alt="DLG Board" />
       <div>
         <strong>DLG Board</strong>
         <small>เราคือทีม</small>
@@ -372,15 +381,25 @@ function App() {
       .catch((error) => console.warn("web push setup unavailable", error));
     return () => unsubscribe();
   }, [authUser?.uid]);
-  useEffect(() => subscribeFileLinks((remote) => setFiles(remote)), []);
-  useEffect(
-    () =>
-      subscribeFolders(
-        (remote) => setFolders(remote.map((item) => item.path).filter(Boolean)),
-        (error) => console.warn("folders subscription unavailable", error),
-      ),
-    [],
-  );
+  useEffect(() => {
+    if (activeNav !== "ไฟล์และลิงก์") {
+      setFiles([]);
+      setFolders([]);
+      return () => {};
+    }
+    const stopLinks = subscribeFileLinks(
+      (remote) => setFiles(remote),
+      (error) => console.warn("file links subscription unavailable", error),
+    );
+    const stopFolders = subscribeFolders(
+      (remote) => setFolders(remote.map((item) => item.path).filter(Boolean)),
+      (error) => console.warn("folders subscription unavailable", error),
+    );
+    return () => {
+      stopLinks();
+      stopFolders();
+    };
+  }, [activeNav]);
   const allFiltered = useMemo(
     () =>
       tasks.filter((task) => {
@@ -740,14 +759,15 @@ function App() {
           onReadAllNotifications={handleReadAllNotifications}
         />
       {activeNav === "บอร์ดงาน" && (
-        <BoardPage
-          activeBoard={activeBoard}
-          onSelectBoard={(key) => {
-            setActiveBoard(key);
-            setStatusFilter("ทุกสถานะ");
-          }}
-          CalendarPage={EnhancedCalendarPage}
-          board={board}
+        <Suspense fallback={<RouteLoading />}>
+          <BoardPage
+            activeBoard={activeBoard}
+            onSelectBoard={(key) => {
+              setActiveBoard(key);
+              setStatusFilter("ทุกสถานะ");
+            }}
+            CalendarPage={EnhancedCalendarPage}
+            board={board}
             tasks={boardTasks}
             viewMode={viewMode}
             setViewMode={setViewMode}
@@ -775,13 +795,16 @@ function App() {
             onMove={handleMove}
             onDelete={handleDelete}
           />
-        )}
-        {activeNav === "ภาพรวม" && (
+        </Suspense>
+      )}
+      {activeNav === "ภาพรวม" && (
+        <Suspense fallback={<RouteLoading />}>
           <OverviewPage
             tasks={tasks}
             users={visibleUsers}
             onSelect={setSelectedTask}
           />
+        </Suspense>
         )}
         {activeNav === "งานทั้งหมด" && (
           <AllTasksPage
@@ -800,58 +823,58 @@ function App() {
           />
         )}
         {activeNav === "ไฟล์และลิงก์" && (
-          <EnhancedFilesPageDrive
-            files={files}
-            setFiles={setFiles}
-            folders={folders}
-            setFolders={setFolders}
-            currentUser={userLabel}
-          />
-        )}
+          <Suspense fallback={<RouteLoading />}>
+            <EnhancedFilesPageDrive
+              files={files}
+              setFiles={setFiles}
+              folders={folders}
+              setFolders={setFolders}
+              currentUser={userLabel}
+            />
+          </Suspense>
+      )}
       </main>
       {selectedTask && (
-        <EnhancedTaskDrawer
-          task={{
-            ...(tasks.find((item) => item.id === selectedTask.id) ||
-              selectedTask),
-            __editing: selectedTask.__editing,
-          }}
-          board={
-            boardConfigs[
-              (
-                tasks.find((item) => item.id === selectedTask.id) ||
-                selectedTask
-              ).board
-            ] || board
-          }
-          onClose={() => setSelectedTask(null)}
-          users={memberOptions}
-          tasks={tasks}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onComment={handleComment}
-          onUpload={handleUpload}
-          onDeleteComment={handleDeleteComment}
-          currentUserId={authUser?.uid}
-          currentUserLabel={userLabel}
-        />
+        <Suspense fallback={<RouteLoading />}>
+          <EnhancedTaskDrawer
+            task={{
+              ...(tasks.find((item) => item.id === selectedTask.id) || selectedTask),
+              __editing: selectedTask.__editing,
+            }}
+            board={boardConfigs[(tasks.find((item) => item.id === selectedTask.id) || selectedTask).board] || board}
+            onClose={() => setSelectedTask(null)}
+            users={memberOptions}
+            tasks={tasks}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onComment={handleComment}
+            onUpload={handleUpload}
+            onDeleteComment={handleDeleteComment}
+            currentUserId={authUser?.uid}
+            currentUserLabel={userLabel}
+          />
+        </Suspense>
       )}
       {showCreate && (
-        <TaskEditorDrawer
-          board={board}
-          users={memberOptions}
-          tasks={tasks}
-          onClose={() => setShowCreate(false)}
-          onCreate={handleCreate}
-        />
+        <Suspense fallback={<RouteLoading />}>
+          <TaskEditorDrawer
+            board={board}
+            users={memberOptions}
+            tasks={tasks}
+            onClose={() => setShowCreate(false)}
+            onCreate={handleCreate}
+          />
+        </Suspense>
       )}
       {showProfile && (
-        <ProfileModal
-          user={{ ...authUser, displayName: userLabel, photoURL: userPhoto }}
-          onClose={() => setShowProfile(false)}
-          onSave={handleProfileSave}
-          onLogout={handleLogout}
-        />
+        <Suspense fallback={<RouteLoading />}>
+          <ProfileModal
+            user={{ ...authUser, displayName: userLabel, photoURL: userPhoto }}
+            onClose={() => setShowProfile(false)}
+            onSave={handleProfileSave}
+            onLogout={handleLogout}
+          />
+        </Suspense>
       )}
     </div>
   );
@@ -871,7 +894,7 @@ function Sidebar({
   return (
     <aside className="sidebar">
       <div className="brand-mark">
-        <span>D</span>
+        <img className="brand-logo" src="/dlg-logo-black.png" alt="DLG Board" />
         <div>
           <strong>DLG Board</strong>
           <small>เราคือทีม</small>
@@ -1078,136 +1101,17 @@ function AllTasksPage({
         />
         <span>{tasks.length} งาน</span>
       </div>
-      <TaskTable
-        tasks={tasks}
-        onSelect={(task) => {
-          setActiveBoard(task.board);
-          setActiveNav("บอร์ดงาน");
-          onSelect(task);
-        }}
-      />
+      <Suspense fallback={<RouteLoading />}>
+        <TaskTable
+          tasks={tasks}
+          onSelect={(task) => {
+            setActiveBoard(task.board);
+            setActiveNav("บอร์ดงาน");
+            onSelect(task);
+          }}
+        />
+      </Suspense>
     </>
-  );
-}
-function OverviewPage({ tasks, users, onSelect }) {
-  const completed = tasks.filter((task) =>
-    ["รูปภาพเสร็จแล้ว", "Work Done", "Finish", "Completed"].includes(
-      task.status,
-    ),
-  ).length;
-  return (
-    <>
-      <PageTitle
-        eyebrow="COMMAND CENTER"
-        title="ภาพรวมองค์กร"
-        text="ภาพรวม workload และความเคลื่อนไหวของทุกแผนก"
-      />
-      <div className="metric-grid">
-        <Metric label="งานทั้งหมด" value={tasks.length} note="ทุกแผนก" />
-        <Metric
-          label="เสร็จแล้ว"
-          value={`${Math.round((completed / Math.max(tasks.length, 1)) * 100)}%`}
-          note="ตาม workflow"
-        />
-        <Metric
-          label="ต้องติดตามวันนี้"
-          value={
-            tasks.filter((task) => {
-              const due = parseDue(task.due);
-              const now = new Date();
-              return (
-                due &&
-                due.getFullYear() === now.getFullYear() &&
-                due.getMonth() === now.getMonth() &&
-                due.getDate() === now.getDate()
-              );
-            }).length
-          }
-          note="กำหนดส่งวันนี้"
-          accent
-        />
-        <Metric
-          label="สมาชิกที่ใช้งาน"
-          value={users.length}
-          note="จากข้อมูลสมาชิกจริง"
-        />
-      </div>
-      <div className="overview-grid">
-        <div className="overview-panel">
-          <div className="panel-heading">
-            <div>
-              <span>WORKLOAD</span>
-              <h2>งานแยกตามแผนก</h2>
-            </div>
-            <MoreHorizontal size={17} />
-          </div>
-          {Object.entries(boardConfigs).map(([key, config]) => {
-            const count = tasks.filter((task) => task.board === key).length;
-            return (
-              <div className="progress-row" key={key}>
-                <div>
-                  <i style={{ background: config.color }} />
-                  <strong>{config.label}</strong>
-                </div>
-                <div className="progress-track">
-                  <span
-                    style={{
-                      width: `${Math.max(count * 10, 8)}%`,
-                      background: config.color,
-                    }}
-                  />
-                </div>
-                <b>{count}</b>
-              </div>
-            );
-          })}
-        </div>
-        <div className="overview-panel">
-          <div className="panel-heading">
-            <div>
-              <span>UP NEXT</span>
-              <h2>งานที่ใกล้ครบกำหนด</h2>
-            </div>
-            <CalendarDays size={17} />
-          </div>
-          {tasks
-            .filter((task) => parseDue(task.due))
-            .sort((a, b) => parseDue(a.due) - parseDue(b.due))
-            .slice(0, 5)
-            .map((task) => (
-              <button
-                className="up-next"
-                key={task.id}
-                onClick={() => onSelect(task)}
-              >
-                <span>
-                  <strong>{task.title}</strong>
-                  <small>
-                    {boardConfigs[task.board]?.label} · {task.assignees?.[0]}
-                  </small>
-                </span>
-                <b>{task.due}</b>
-              </button>
-            ))}
-        </div>
-      </div>
-      <div className="activity-strip">
-        <Sparkles size={16} />
-        <span>
-          <strong>Activity</strong> อัปเดต workflow และ comment
-          ล่าสุดของทั้งองค์กร
-        </span>
-      </div>
-    </>
-  );
-}
-function Metric({ label, value, note, accent }) {
-  return (
-    <div className={`metric-card ${accent ? "accent" : ""}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </div>
   );
 }
 function taskDate(value) {
@@ -1341,4 +1245,26 @@ function EnhancedCalendarPage({ tasks, onSelect, compact = false }) {
     </div>
   );
 }
-createRoot(document.getElementById("root")).render(<App />);
+class AppErrorBoundary extends React.Component {
+  state = { error: null };
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div style={{ padding: 32, color: "#17253b", fontFamily: "Manrope, sans-serif" }}>
+        <h2>ระบบแสดงผลหน้านี้ไม่สำเร็จ</h2>
+        <p style={{ color: "#68758a" }}>{this.state.error.message || "เกิดข้อผิดพลาดระหว่างโหลดข้อมูล"}</p>
+      </div>
+    );
+  }
+}
+
+createRoot(document.getElementById("root")).render(
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>,
+);

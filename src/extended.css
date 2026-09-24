@@ -143,6 +143,26 @@
 .drive-file-delete { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 50%; background: transparent; color: #9aa0a6; cursor: pointer; }
 .drive-file-delete:hover { background: #fce8e6; color: #c5221f; }
 
+/* Organization command center: dense enough for decisions, calm enough for daily use. */
+.overview-live-note { display: flex; align-items: center; gap: 8px; margin: -15px 0 16px; color: #62758b; font-size: 10px; }
+.route-loading { display: grid; place-items: center; min-height: 220px; color: #68758a; font-size: 11px; }
+.overview-live-note-count { margin-left: auto; color: #168f83; font: 10px 'DM Mono'; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: #168f83; box-shadow: 0 0 0 4px rgba(22,143,131,.12); }
+.overview-metrics-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.overview-metric { min-width: 0; padding: 15px 16px; border: 1px solid #d7e2ec; border-top: 3px solid #2d5b9a; border-radius: 9px; background: #fff; box-shadow: 0 7px 18px rgba(42,65,89,.05); }
+.overview-metric.teal { border-top-color: #168f83; }.overview-metric.coral { border-top-color: #ef7657; }.overview-metric.yellow { border-top-color: #e7a92c; }.overview-metric.purple { border-top-color: #6c63a8; }
+.overview-metric-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #68758a; font-size: 10px; }
+.overview-metric-top svg { color: #8ca0b2; }.overview-metric strong { display: block; margin: 11px 0 4px; color: #17253b; font: 700 25px 'DM Mono'; }.overview-metric.coral strong { color: #d65f44; }.overview-metric small { color: #8795a4; font-size: 9px; }
+.overview-command-grid, .overview-lower-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; margin-bottom: 14px; }
+.overview-panel { min-width: 0; padding: 18px; border: 1px solid #d7e2ec; border-radius: 10px; background: #fff; box-shadow: 0 7px 18px rgba(42,65,89,.05); }
+.overview-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 15px; }.overview-panel-heading > svg { color: #8ba0b3; }
+.overview-panel-heading span { color: #8a98a8; font: 9px 'DM Mono'; letter-spacing: 1px; }.overview-panel-heading h2 { margin: 5px 0 0; color: #17253b; font-size: 15px; letter-spacing: -.2px; }
+.overview-status-list, .overview-attention-list, .overview-activity-list { display: grid; gap: 2px; }.overview-status-row, .overview-attention-row, .overview-activity-row { display: flex; align-items: center; width: 100%; gap: 10px; padding: 9px 0; border-top: 1px solid #edf1f4; text-align: left; }.overview-status-row:hover, .overview-attention-row:hover, .overview-activity-row:hover { background: #f8fbfd; }
+.overview-status-name { display: grid; grid-template-columns: 7px 85px 1fr; align-items: center; gap: 6px; width: 220px; min-width: 220px; color: #68758a; font-size: 10px; }.overview-status-name i, .department-cell i { width: 7px; height: 7px; border-radius: 50%; }.overview-status-name b { overflow: hidden; color: #17253b; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }.overview-status-bar { height: 7px; flex: 1; overflow: hidden; border-radius: 6px; background: #edf1f4; }.overview-status-bar i { display: block; height: 100%; min-width: 5px; border-radius: inherit; }.overview-status-row > strong { width: 22px; color: #68758a; font: 11px 'DM Mono'; text-align: right; }
+.overview-attention-row { gap: 8px; }.attention-icon { display: grid; place-items: center; width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; color: #fff; background: #ef7657; font-weight: 800; }.attention-icon.soon { color: #8c631e; background: #fff0c8; }.attention-icon.priority { color: #fff; background: #6c63a8; }.attention-copy { min-width: 0; flex: 1; }.attention-copy strong, .attention-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.attention-copy strong { color: #17253b; font-size: 10px; }.attention-copy small { margin-top: 3px; color: #8997a6; font-size: 9px; }.attention-meta { display: flex; align-items: center; gap: 4px; color: #8b6a58; font-size: 9px; white-space: nowrap; }.attention-meta svg { color: #a4b0bc; }
+.overview-department-panel { margin-bottom: 14px; }.department-health-table { overflow-x: auto; }.department-health-head, .department-health-row { display: grid; grid-template-columns: minmax(150px, 1.5fr) repeat(4, minmax(55px, .6fr)) minmax(130px, 1fr); gap: 12px; align-items: center; }.department-health-head { padding: 0 9px 9px; color: #8a98a8; font: 9px 'DM Mono'; }.department-health-row { width: 100%; padding: 12px 9px; border-top: 1px solid #edf1f4; color: #68758a; font-size: 10px; text-align: left; }.department-health-row:hover { background: #f8fbfd; }.department-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }.department-cell strong { color: #17253b; font-size: 11px; }.department-health-row > b { color: #68758a; font: 11px 'DM Mono'; }.department-health-row .done-number { color: #168f83; }.department-health-row .overdue-number { color: #d65f44; }.department-progress { display: flex; align-items: center; gap: 8px; }.department-progress > i { display: block; height: 7px; flex: 1; overflow: hidden; border-radius: 7px; background: #edf1f4; }.department-progress > i > b { display: block; height: 100%; border-radius: inherit; }.department-progress > strong { width: 30px; color: #68758a; font: 10px 'DM Mono'; }
+.overview-activity-row { gap: 9px; }.activity-avatar { display: grid; place-items: center; width: 26px; height: 26px; flex: 0 0 26px; border-radius: 50%; color: #176b70; background: #e2f1ee; font-size: 10px; font-weight: 700; }.activity-avatar.empty { color: #8c631e; background: #fff0c8; }.overview-activity-row > span:last-child { min-width: 0; }.overview-activity-row strong, .overview-activity-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.overview-activity-row strong { color: #17253b; font-size: 10px; }.overview-activity-row small { margin-top: 3px; color: #8997a6; font-size: 9px; }.overview-empty { padding: 22px 8px; color: #8997a6; font-size: 10px; text-align: center; }
+
 /* Bright Studio theme: warmer canvas, clearer surfaces, and department accents. */
 :root {
   --ink: #17253b;
@@ -159,6 +179,8 @@ body { background: var(--canvas); }
 .app-shell { background: var(--canvas); }
 .sidebar { border-right-color: #d6e0ea; background: #eef4f8; }
 .brand-mark > span { background: #17253b; box-shadow: 0 5px 12px rgba(23,37,59,.18); }
+.brand-logo { display: block; width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; border-radius: 10px; background: #ffffff; padding: 4px; box-shadow: 0 5px 12px rgba(23,37,59,.12); }
+.brand-mark.centered .brand-logo { width: 48px; height: 48px; flex-basis: 48px; background: #ffffff; }
 .brand-mark small, .workspace-switcher small, .profile small { color: #7e8da0; }
 .workspace-switcher { background: #ffffff; border-color: #d5e1ec; box-shadow: 0 3px 12px rgba(49,77,108,.06); }
 .workspace-avatar { background: #168f83; }
@@ -775,4 +797,13 @@ body { min-width: 0; color: var(--ink); }
   .task-view-section, .task-view-summary { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
   .task-view-section { overflow: hidden; }
   .task-view-steps { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow-x: auto; overscroll-behavior-x: contain; }
+
+  .overview-live-note { margin-top: -7px; line-height: 1.45; }
+  .overview-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .overview-metric { padding: 12px; }.overview-metric strong { margin-top: 8px; font-size: 21px; }.overview-metric small { line-height: 1.4; }
+  .overview-command-grid, .overview-lower-grid { grid-template-columns: 1fr; gap: 10px; }
+  .overview-panel { padding: 13px; }.overview-panel-heading { margin-bottom: 10px; }.overview-panel-heading h2 { font-size: 14px; }
+  .overview-status-row { gap: 6px; }.overview-status-name { grid-template-columns: 7px 68px 1fr; width: 155px; min-width: 155px; }.overview-status-name b { font-size: 9px; }.overview-status-bar { min-width: 25px; }
+  .overview-attention-row { align-items: flex-start; }.attention-meta { margin-left: auto; max-width: 86px; white-space: normal; text-align: right; }.attention-meta svg { display: none; }
+  .department-health-head, .department-health-row { grid-template-columns: minmax(120px, 1.4fr) repeat(4, minmax(42px, .55fr)) minmax(105px, 1fr); gap: 7px; }.department-health-head { font-size: 8px; }.department-health-row { padding: 10px 4px; }.department-cell strong { font-size: 10px; }.department-health-row > b { font-size: 10px; }.department-progress { gap: 4px; }.department-progress > strong { width: 25px; font-size: 9px; }
 }
