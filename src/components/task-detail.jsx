@@ -1,12 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AlignLeft, Bold, Check, Italic, Link2, List, ListOrdered, LogOut, MessageCircle, Paperclip, Plus, Redo2, Settings2, Sparkles, Undo2, Upload, X } from "lucide-react";
 import { subscribeTaskActivity } from "../services";
-import { parseDue } from "../utils/task";
+import { deadlineStateForDue, getNextStep, parseDue } from "../utils/task";
 
 function descriptionPreview(value) { if (!value) return ""; const container = document.createElement("div"); container.innerHTML = String(value); return (container.textContent || container.innerText || "").replace(/\s+/g, " ").trim(); }
 function renderCommentText(value) { return String(value || "").split(/(@\[[^\]]+\]|#\[[^\]]+\]|\[\[[^\]]+\]\])/g).map((part, index) => /^@\[/.test(part) ? <span className="mention-token person" key={`${part}-${index}`}>{part}</span> : (/^#\[|^\[\[/.test(part) ? <span className="mention-token task" key={`${part}-${index}`}>{part}</span> : <span key={`${part}-${index}`}>{part}</span>)); }
 function relativeTime(value) { const date = parseDue(value); if (!date) return ""; const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000)); if (minutes < 1) return "เมื่อสักครู่นี้"; if (minutes < 60) return `${minutes} นาทีที่แล้ว`; const hours = Math.floor(minutes / 60); if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`; return `${Math.floor(hours / 24)} วันที่แล้ว`; }
 function UserAvatar({ src, name, className }) { const [failed, setFailed] = useState(false); const normalized = src && src.includes("googleusercontent.com") && !src.includes("=") ? `${src}=s96-c` : src; return <div className={className}>{normalized && !failed ? <img src={normalized} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : name?.[0] || "G"}</div>; }
+const editorPresetColors = [
+  { label: "แดง", value: "#d64545" },
+  { label: "เหลือง", value: "#d89b18" },
+  { label: "เขียว", value: "#168f6b" },
+  { label: "น้ำเงิน", value: "#2877c7" },
+];
 function EnhancedTaskDrawer({
   task,
   board,
@@ -1022,6 +1028,7 @@ function TaskEditorDrawer({ board, users, tasks, onClose, onCreate }) {
 }
 
 function TaskViewDetails({ task, board, users }) {
+  const nextStep = getNextStep(task, board.statuses);
   const steps = board.statuses.map(
     (status) =>
       task.steps?.find((step) => step.status === status) || { status, due: "" },
@@ -1074,6 +1081,11 @@ function TaskViewDetails({ task, board, users }) {
             {currentIndex + 1}/{steps.length}
           </span>
         </div>
+        {nextStep?.due && (
+          <div className={`task-view-next-due ${deadlineStateForDue(nextStep.due)}`}>
+            ถัดไป: {nextStep.status} · {nextStep.due}
+          </div>
+        )}
         <div className="task-view-steps">
           {steps.map((step, index) => (
             <div
@@ -1176,6 +1188,7 @@ function BetterRichTextEditor({ value, onChange, onImageUpload }) {
   const changeRef = useRef(onChange);
   const [format, setFormat] = useState("p");
   const [color, setColor] = useState("#315676");
+  const [colorPaletteOpen, setColorPaletteOpen] = useState(false);
   useEffect(() => {
     changeRef.current = onChange;
   }, [onChange]);
@@ -1230,11 +1243,17 @@ function BetterRichTextEditor({ value, onChange, onImageUpload }) {
     editor.addEventListener("keyup", rememberSelection);
     editor.addEventListener("mouseup", rememberSelection);
     document.addEventListener("mousedown", rememberToolbarSelection, true);
+    const closeColorPalette = (event) => {
+      if (!event.target.closest?.(".editor-color-picker"))
+        setColorPaletteOpen(false);
+    };
+    document.addEventListener("mousedown", closeColorPalette);
     return () => {
       editor.removeEventListener("keydown", handleListEnter);
       editor.removeEventListener("keyup", rememberSelection);
       editor.removeEventListener("mouseup", rememberSelection);
       document.removeEventListener("mousedown", rememberToolbarSelection, true);
+      document.removeEventListener("mousedown", closeColorPalette);
     };
   }, []);
   const focusEditor = () => {
@@ -1264,6 +1283,11 @@ function BetterRichTextEditor({ value, onChange, onImageUpload }) {
   const link = () => {
     const url = window.prompt("วาง URL ของลิงก์");
     if (url) run("createLink", url);
+  };
+  const applyTextColor = (value) => {
+    setColor(value);
+    setColorPaletteOpen(false);
+    run("foreColor", value);
   };
   const addImage = async (file) => {
     if (!file) return;
@@ -1346,18 +1370,48 @@ function BetterRichTextEditor({ value, onChange, onImageUpload }) {
           )}
         </div>
         <div className="editor-tool-group">
-          <label className="editor-color-modern" title="สีตัวอักษร">
-            <span style={{ color }}>A</span>
-            <input
-              type="color"
-              value={color}
-              aria-label="สีตัวอักษร"
-              onChange={(event) => {
-                setColor(event.target.value);
-                run("foreColor", event.target.value);
-              }}
-            />
-          </label>
+          <div className="editor-color-picker">
+            <button
+              type="button"
+              className="editor-color-modern"
+              title="สีตัวอักษร"
+              aria-label="เปิดชุดสีตัวอักษร"
+              aria-expanded={colorPaletteOpen}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setColorPaletteOpen((open) => !open)}
+            >
+              <span style={{ color }}>A</span>
+            </button>
+            {colorPaletteOpen && (
+              <div className="editor-color-menu" role="menu" aria-label="เลือกสีตัวอักษร">
+                <span className="editor-color-menu-label">สีหลัก</span>
+                <div className="editor-color-swatches">
+                  {editorPresetColors.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      className={`editor-color-swatch ${color === preset.value ? "selected" : ""}`}
+                      style={{ backgroundColor: preset.value }}
+                      title={preset.label}
+                      aria-label={`สี${preset.label}`}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => applyTextColor(preset.value)}
+                    />
+                  ))}
+                </div>
+                <label className="editor-color-custom">
+                  <span>กำหนดสีเอง</span>
+                  <input
+                    type="color"
+                    value={color}
+                    aria-label="กำหนดสีเอง"
+                    onMouseDown={rememberSelection}
+                    onChange={(event) => applyTextColor(event.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
           {tool("ลิงก์", "แทรกลิงก์", link, <Link2 size={15} />)}
           {tool(
             "รูปภาพ",

@@ -2,6 +2,14 @@ export function currentStepDue(task) {
   return task.steps?.find((step) => step.status === task.status)?.due || task.due || "";
 }
 
+export function getNextStep(task, statuses = []) {
+  const currentIndex = statuses.indexOf(task.status);
+  if (currentIndex < 0 || currentIndex >= statuses.length - 1) return null;
+  const status = statuses[currentIndex + 1];
+  const due = task.steps?.find((step) => step.status === status)?.due || "";
+  return { status, due };
+}
+
 export function parseDue(value) {
   if (!value || value === "ยังไม่กำหนด") return null;
   if (typeof value.toDate === "function") return value.toDate();
@@ -25,13 +33,19 @@ export function dueAtEndOfDay(value) {
   return parsed;
 }
 
-export function deadlineState(task) {
-  const due = dueAtEndOfDay(currentStepDue(task));
-  if (!due || ["เสร็จ", "รูปภาพเสร็จแล้ว", "Finish", "Work Done", "Completed", "Done"].includes(task.status)) return "";
+export function deadlineStateForDue(value) {
+  const due = dueAtEndOfDay(value);
+  if (!due) return "";
   const days = (due.getTime() - Date.now()) / 86400000;
   if (days < 0) return "overdue";
   if (days <= 3) return "soon";
   return "";
+}
+
+export function deadlineState(task) {
+  const due = dueAtEndOfDay(currentStepDue(task));
+  if (!due || ["เสร็จ", "รูปภาพเสร็จแล้ว", "Finish", "Work Done", "Completed", "Done"].includes(task.status)) return "";
+  return deadlineStateForDue(currentStepDue(task));
 }
 
 export function isOverdue(task) {

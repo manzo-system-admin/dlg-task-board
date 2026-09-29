@@ -430,19 +430,32 @@ function DriveFolderRow({ item, folder, files, folders, onOpen, onDelete }) {
   );
 }
 function DriveFolderCard({ item, files, folders, onOpen, onDelete }) {
+  const itemCount =
+    files.filter((file) => file.folderPath === item).length +
+    folders.filter(
+      (child) =>
+        child.startsWith(`${item}/`) &&
+        !child.slice(item.length + 1).includes("/"),
+    ).length;
   return (
-    <div className="drive-folder-card" onDoubleClick={() => onOpen(item)}>
-      <FolderKanban size={20} />
-      <strong>{item.split("/").pop()}</strong>
-      <small>
-        {files.filter((file) => file.folderPath === item).length +
-          folders.filter(
-            (child) =>
-              child.startsWith(`${item}/`) &&
-              !child.slice(item.length + 1).includes("/"),
-          ).length} รายการ
-      </small>
-      <button onClick={() => onDelete(item)}>
+    <div className="drive-folder-card">
+      <button
+        type="button"
+        className="drive-folder-open"
+        aria-label={`เปิดโฟลเดอร์ ${item.split("/").pop()}`}
+        onClick={() => onOpen(item)}
+      >
+        <FolderKanban size={20} />
+        <span className="drive-folder-copy">
+          <strong>{item.split("/").pop()}</strong>
+          <small>{itemCount} รายการ</small>
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={`ลบโฟลเดอร์ ${item.split("/").pop()}`}
+        onClick={() => onDelete(item)}
+      >
         <X size={13} />
       </button>
     </div>

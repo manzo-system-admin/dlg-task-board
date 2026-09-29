@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { CalendarDays, ClipboardList, FileText, LayoutDashboard, ListFilter, MessageCircle, MoreHorizontal, Plus, Search, Settings2, Sparkles, Tag, Users, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowRight, CalendarDays, ClipboardList, FileText, LayoutDashboard, ListFilter, MessageCircle, MoreHorizontal, Plus, Search, Settings2, Sparkles, Tag, Users, X } from "lucide-react";
 import { boardConfigs } from "../data";
 import { PageTitle, FilterSelect } from "./shared";
-import { currentStepDue, deadlineState, isOverdue } from "../utils/task";
+import { currentStepDue, deadlineState, deadlineStateForDue, getNextStep, isOverdue } from "../utils/task";
 function BoardPage({
   activeBoard,
   onSelectBoard,
@@ -409,7 +409,14 @@ function TaskTable({ tasks, onSelect }) {
           </span>
           <span>{boardConfigs[task.board]?.label}</span>
           <span>{(task.assignees || [task.assignee]).join(", ")}</span>
-          <span>{task.due}</span>
+          <span className="task-row-dates">
+            <strong>{currentStepDue(task) || "ยังไม่กำหนด"}</strong>
+            {getNextStep(task, boardConfigs[task.board]?.statuses || [])?.due && (
+              <small className={`task-row-next-due ${deadlineStateForDue(getNextStep(task, boardConfigs[task.board]?.statuses || [])?.due)}`}>
+                ถัดไป: {getNextStep(task, boardConfigs[task.board]?.statuses || []).status} · {getNextStep(task, boardConfigs[task.board]?.statuses || []).due}
+              </small>
+            )}
+          </span>
           <span className="row-status">{task.status}</span>
         </button>
       ))}
@@ -425,17 +432,40 @@ function TaskTable({ tasks, onSelect }) {
 
 function TaskCardV2({ task, onSelect, onMove, onDelete }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
   const owner = task.assignees?.[0] || task.assignee || "ยังไม่มอบหมาย";
   const due = currentStepDue(task);
+  const nextStep = getNextStep(task, boardConfigs[task.board]?.statuses || []);
+  const nextDeadline = nextStep?.due ? deadlineStateForDue(nextStep.due) : "";
   const deadline = deadlineState(task);
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsidePress = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const closeOnScroll = () => setOpen(false);
+    document.addEventListener("pointerdown", closeOnOutsidePress, true);
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("scroll", closeOnScroll, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress, true);
+      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("scroll", closeOnScroll, true);
+    };
+  }, [open]);
   return (
     <article className="task-card" onClick={() => onSelect(task)}>
       <div className="task-card-top">
         <span className="task-tag">{task.tag}</span>
-        <div className="task-menu-wrap">
+        <div className="task-menu-wrap" ref={menuRef}>
           <button
             className="card-more"
             aria-label="เมนู Task"
+            aria-haspopup="menu"
+            aria-expanded={open}
             onClick={(event) => {
               event.stopPropagation();
               setOpen((value) => !value);
@@ -507,10 +537,18 @@ function TaskCardV2({ task, onSelect, onMove, onDelete }) {
         </span>
       </div>
       <div className="task-card-bottom">
-        <span>
-          <CalendarDays size={13} />
-          {due || "ยังไม่กำหนด"}
-        </span>
+        <div className="task-card-dates">
+          <span>
+            <CalendarDays size={13} />
+            {due || "ยังไม่กำหนด"}
+          </span>
+          {nextStep?.due && (
+            <span className={`task-next-due ${nextDeadline}`}>
+              <ArrowRight size={12} />
+              ถัดไป: {nextStep.status} · {nextStep.due}
+            </span>
+          )}
+        </div>
         <span>
           <MessageCircle size={13} />
           {task.comments?.length || task.commentCount || task.comments || 0}

@@ -1155,6 +1155,21 @@ function EnhancedCalendarPage({ tasks, onSelect, compact = false }) {
     month: "long",
     year: "numeric",
   });
+  const dayTasksFor = (day) =>
+    day
+      ? tasks.filter((task) => {
+          const due = taskDate(task.due);
+          return (
+            due &&
+            due.getFullYear() === month.getFullYear() &&
+            due.getMonth() === month.getMonth() &&
+            due.getDate() === day
+          );
+        })
+      : [];
+  const agendaDays = Array.from({ length: daysInMonth }, (_, index) => index + 1)
+    .map((day) => ({ day, tasks: dayTasksFor(day) }))
+    .filter((entry) => entry.tasks.length);
   return (
     <div className={`calendar-panel ${compact ? "compact" : ""}`}>
       <div className="calendar-header">
@@ -1205,17 +1220,7 @@ function EnhancedCalendarPage({ tasks, onSelect, compact = false }) {
       </div>
       <div className="calendar-grid">
         {cells.map((day, index) => {
-          const dayTasks = day
-            ? tasks.filter((task) => {
-                const due = taskDate(task.due);
-                return (
-                  due &&
-                  due.getFullYear() === month.getFullYear() &&
-                  due.getMonth() === month.getMonth() &&
-                  due.getDate() === day
-                );
-              })
-            : [];
+          const dayTasks = dayTasksFor(day);
           return (
             <div
               className={`calendar-day ${day === new Date().getDate() && month.getFullYear() === new Date().getFullYear() && month.getMonth() === new Date().getMonth() ? "today" : ""}`}
@@ -1241,6 +1246,30 @@ function EnhancedCalendarPage({ tasks, onSelect, compact = false }) {
             </div>
           );
         })}
+      </div>
+      <div className="calendar-mobile-agenda">
+        {agendaDays.length ? agendaDays.map(({ day, tasks: dayTasks }) => (
+          <section className="calendar-agenda-day" key={day}>
+            <div className="calendar-agenda-date">
+              <strong>{day}</strong>
+              <span>{new Date(month.getFullYear(), month.getMonth(), day).toLocaleDateString("th-TH", { weekday: "short" })}</span>
+            </div>
+            <div className="calendar-agenda-items">
+              {dayTasks.map((task) => (
+                <button
+                  className="calendar-agenda-event"
+                  key={task.id}
+                  style={{ borderLeftColor: boardConfigs[task.board]?.color }}
+                  onClick={() => onSelect(task)}
+                >
+                  <strong>{task.title}</strong>
+                  <span>{boardConfigs[task.board]?.label || task.department || "ไม่ระบุแผนก"}</span>
+                  <small>{task.status || "ไม่ระบุสถานะ"}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        )) : <div className="calendar-agenda-empty">เดือนนี้ยังไม่มีงานตามกำหนดส่ง</div>}
       </div>
     </div>
   );

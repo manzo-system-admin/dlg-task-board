@@ -24,6 +24,7 @@ export const boardConfigs = {
     color: "#348278",
     statuses: [
       "Shooting Day",
+      "Video Stock",
       "Post-Production",
       "On Draft",
       "Post-Revise",
